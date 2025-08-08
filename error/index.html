@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOE SONHOS - Realize Sonhos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Fundo principal escuro */
+            transition: background-color 0.5s ease;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        .modal-backdrop {
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+        #slideshowContainer {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -10; display: none; overflow: hidden;
+        }
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover; background-position: center;
+            opacity: 0; transition: opacity 1.5s ease-in-out; will-change: opacity;
+        }
+        .slide.active { opacity: 1; }
+        #slideshowContainer::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5);
+        }
+        .custom-alert {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background-color: #28a745; color: white; padding: 15px 25px; border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000; opacity: 0;
+            transition: opacity 0.5s, top 0.5s; font-weight: bold;
+        }
+        .star-rating .star {
+            cursor: pointer; color: #4b5563; font-size: 2.5rem; transition: color 0.2s;
+        }
+        .star-rating .star:hover,
+        .star-rating .star.selected {
+            color: #f59e0b;
+        }
+        .aspect-video {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 ratio */
+        }
+        .aspect-video > * {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="text-gray-200 flex flex-col min-h-screen">
+
+    <!-- Slideshow de Fundo -->
+    <div id="slideshowContainer"></div>
+    
+    <!-- Alerta Customizado -->
+    <div id="customAlert" class="custom-alert"></div>
+
+    <!-- Cabeçalho -->
+    <header class="bg-gray-900/50 backdrop-blur-lg text-white shadow-lg sticky top-0 z-40">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <h1 class="text-3xl font-bold">DOE SONHOS</h1>
+            <div class="flex items-center">
+                <div class="text-right mr-4 border-r border-white/30 pr-4">
+                    <p class="text-sm font-bold">Nível: <span id="userLevelDisplay">1</span></p>
+                    <p class="text-xs opacity-90"><span id="userPointsDisplay">0</span> Pontos</p>
+                </div>
+                <button id="sharePageBtn" title="Compartilhar" class="mr-2 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8m-4-6l-4-4m0 0L8 6m4-4v12"></path></svg>
+                </button>
+                <button id="toggleAmbianceBtn" title="Ativar/Desativar Ambiência" class="mr-2 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
+                    <svg id="playIcon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg id="pauseIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </button>
+                <button id="registerDreamBtn" class="bg-white text-indigo-600 font-bold py-2 px-4 rounded-lg hover:bg-gray-200 transition duration-300 hidden md:block">Realizar um Sonho</button>
+                <button id="supportCreatorBtn" class="ml-2 bg-yellow-400 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition duration-300">Apoie o Criador</button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="container mx-auto px-6 py-8 flex-grow">
+        <div class="text-center mb-12 bg-gray-800/30 backdrop-blur-sm p-6 rounded-lg shadow-lg">
+             <h2 class="text-4xl font-extrabold mb-2 text-white">A plataforma que transforma centavos em futuros.</h2>
+             <p class="text-xl text-gray-300">Doe, suba de nível e seja o próximo a ter seu sonho impulsionado pela comunidade.</p>
+        </div>
+        
+        <!-- Grid de Sonhos -->
+        <div id="dreamsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+        <!-- Seção de Inspiração -->
+        <div class="mt-16 bg-gray-800/30 backdrop-blur-sm p-8 rounded-lg shadow-lg flex flex-col md:flex-row items-center gap-8">
+            <div class="md:w-1/3 w-full">
+                <div class="aspect-video rounded-lg overflow-hidden shadow-lg relative bg-black">
+                    <iframe id="inspirationIntroVideo" class="w-full h-full" src="https://www.youtube.com/embed/tJ2kw5bey8g?autoplay=1&mute=1&controls=1&modestbranding=1&loop=1&playlist=tJ2kw5bey8g" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+            <div class="md:w-2/3">
+                <h2 class="text-3xl font-extrabold mb-4 text-white">Nossa Inspiração</h2>
+                <p class="text-gray-200 mb-2"><strong>Um centavo por pessoa: o estudante que pagou a faculdade com troco.</strong></p>
+                <p class="text-gray-300">Em 1987, Mike Hayes, um calouro de 18 anos, teve uma ideia ousada: ao invés de recorrer a empréstimos, decidiu pedir que 2,8 milhões de pessoas enviassem apenas um centavo cada. A história, divulgada pelo colunista Bob Greene, viralizou antes da internet.</p>
+                <p class="text-gray-300 mt-2">O resultado foi surpreendente: Mike arrecadou mais de US$ 28 mil, o suficiente para pagar toda a faculdade. Essa é a prova de que pequenos gestos, quando somados, têm o poder de realizar grandes sonhos. Essa é a alma do nosso projeto.</p>
+                <p class="text-xs text-gray-400 mt-4">Fonte: Chicago Tribune, 1987.</p>
+            </div>
+        </div>
+
+        <!-- Seção de Feedback -->
+        <div class="mt-16 text-center bg-gray-800/30 backdrop-blur-sm p-8 rounded-lg shadow-lg">
+            <h2 class="text-3xl font-extrabold mb-4 text-white">O que dizem sobre nós</h2>
+            <p class="text-lg text-gray-300 mb-8">Veja as avaliações da nossa comunidade.</p>
+            <div id="feedbackList" class="space-y-6 mb-8 text-left max-w-2xl mx-auto"></div>
+            <button id="leaveFeedbackBtn" class="gradient-bg text-white font-bold py-3 px-8 rounded-lg hover:opacity-90 transition-opacity text-lg shadow-lg">Deixar minha avaliação</button>
+        </div>
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="bg-gray-900 text-white mt-12">
+        <div class="container mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+            <div class="md:col-span-2">
+                <h3 class="text-xl font-bold mb-2">DOE SONHOS V18</h3>
+                <p class="text-sm text-gray-400">DOE SONHOS: Onde centavos viram futuros. Uma comunidade de financiamento coletivo para realizar sonhos. Apoie projetos, ganhe pontos e suba de nível para ter seu próprio sonho impulsionado. Junte-se a nós e faça parte desta corrente do bem. Juntos, transformamos sonhos em realidade.</p>
+            </div>
+            <div>
+                 <h3 class="text-xl font-bold mb-2">Contato & Redes</h3>
+                 <div class="flex items-center justify-center md:justify-start space-x-4">
+                     <a href="https://www.instagram.com/marceloreis7467?igsh=MXRqb3Q1MXF0cXdzaA==" target="_blank" rel="noopener noreferrer" class="inline-block text-white hover:text-indigo-400 transition-colors" title="Instagram">
+                        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                     </a>
+                     <a href="https://wa.me/5594991233751" target="_blank" rel="noopener noreferrer" class="inline-block text-white hover:text-green-400 transition-colors" title="WhatsApp">
+                        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.903-.52-5.687-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.267.655 4.398 1.803 6.182l-1.03 3.757 3.752-1.031z"></path></svg>
+                     </a>
+                 </div>
+            </div>
+        </div>
+        <div class="bg-black py-4">
+            <p class="text-center text-sm text-gray-500">&copy; 2025 DOE SONHOS | Criado por Marcelo da Silva Reis | Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Menu de Controle de Fundo -->
+    <div id="backgroundControl" class="fixed bottom-5 right-5 z-40 bg-gray-800/80 backdrop-blur-sm p-4 rounded-lg shadow-lg text-white hidden flex-col space-y-2">
+        <p class="text-sm font-bold text-center">Escolha o Fundo</p>
+        <button id="setSlidesBgBtn" class="text-sm py-1 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700">Manter Slides</button>
+        <button id="setBlackBgBtn" class="text-sm py-1 px-3 rounded-lg bg-black hover:bg-gray-700">Mudar para Tema Black</button>
+    </div>
+
+    <!-- Modais -->
+    <div id="welcomeModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-8 w-full max-w-lg m-4 border border-gray-700 text-center">
+            <h2 class="text-3xl font-bold mb-4 text-white">Bem-vindo(a) ao DOE SONHOS!</h2>
+            <p class="text-lg text-gray-300 mb-2">Aqui, transformamos centavos em futuros.</p>
+            <div class="text-left my-6 space-y-4">
+                <p><strong class="text-indigo-400">1. CADASTRE SEU SONHO:</strong> Para participar, você precisa ter um sonho cadastrado. É a nossa forma de garantir que todos na comunidade podem ser ajudados.</p>
+                <p><strong class="text-indigo-400">2. APOIE OUTROS SONHOS:</strong> Faça pequenas doações para os projetos de outras pessoas. Cada centavo doado gera pontos para você.</p>
+                <p><strong class="text-indigo-400">3. SUBA DE NÍVEL:</strong> Quanto mais você ajuda, mais alto fica seu ranking. Níveis mais altos te dão mais destaque e benefícios!</p>
+            </div>
+            <p class="font-bold text-white">Juntos, criamos uma corrente do bem onde todos se ajudam.</p>
+            <button id="closeWelcomeBtn" class="mt-6 w-full gradient-bg text-white font-bold py-2 px-4 rounded-lg hover:opacity-90">Entendi, vamos começar!</button>
+        </div>
+    </div>
+
+    <div id="firstTimeUserModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-8 w-full max-w-md m-4 border border-gray-700">
+            <h2 class="text-2xl font-bold mb-2">Bem-vindo(a) à comunidade!</h2>
+            <p class="text-gray-300 mb-4">Para apoiar outros sonhos, primeiro você precisa cadastrar o seu. É rápido e ajuda a manter nossa comunidade justa e ativa.</p>
+            <form id="dreamForm">
+                <div class="mb-4"><label for="dreamerName" class="block text-sm font-bold mb-2">Seu Nome:</label><input type="text" id="dreamerName" class="w-full px-3 py-2 border rounded-lg bg-gray-700 border-gray-600 text-white" required></div>
+                <div class="mb-4"><label for="dreamTitle" class="block text-sm font-bold mb-2">Título do Sonho:</label><input type="text" id="dreamTitle" class="w-full px-3 py-2 border rounded-lg bg-gray-700 border-gray-600 text-white" required></div>
+                <div class="mb-4"><label for="dreamDescription" class="block text-sm font-bold mb-2">Descreva seu Sonho:</label><textarea id="dreamDescription" rows="3" class="w-full px-3 py-2 border rounded-lg bg-gray-700 border-gray-600 text-white" required></textarea></div>
+                <div class="mb-4"><label for="dreamPix" class="block text-sm font-bold mb-2">Sua Chave PIX:</label><input type="text" id="dreamPix" class="w-full px-3 py-2 border rounded-lg bg-gray-700 border-gray-600 text-white" required></div>
+                <div class="bg-yellow-200 border-l-4 border-yellow-500 text-yellow-800 p-4 mb-6 rounded-r-lg"><p class="font-bold">Aviso de Segurança</p><p class="text-sm">Para sua proteção, utilize apenas uma **Chave PIX Aleatória**. Não use seu CPF, telefone ou e-mail.</p></div>
+                <div class="flex items-center justify-end space-x-4">
+                    <button type="button" id="cancelRegisterBtn" class="bg-gray-600 text-white py-2 px-4 rounded-lg">Cancelar</button>
+                    <button type="submit" class="gradient-bg text-white font-bold py-2 px-4 rounded-lg hover:opacity-90">Cadastrar e Continuar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="donateModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-8 w-full max-w-md m-4 text-center border border-gray-700">
+            <div id="donateStep1">
+                <h2 class="text-2xl font-bold mb-2">Apoie este Sonho!</h2>
+                <p id="donateModalTitle" class="mb-4 text-gray-300"></p>
+                <div class="space-y-3">
+                    <button data-amount="1" class="donate-amount-btn w-full bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors text-lg">Doar R$ 0,01 <span class="text-sm opacity-80">(+1 pt)</span></button>
+                    <button data-amount="10" class="donate-amount-btn w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition-colors text-lg">Doar R$ 0,10 <span class="text-sm opacity-80">(+10 pts)</span></button>
+                    <button data-amount="100" class="donate-amount-btn w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors text-lg">Doar R$ 1,00 <span class="text-sm opacity-80">(+100 pts)</span></button>
+                    <button data-amount="10000" class="donate-amount-btn w-full bg-purple-700 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-800 transition-colors text-lg">Doar R$ 100,00 <span class="text-sm opacity-80">(+10.000 pts)</span></button>
+                </div>
+            </div>
+            <div id="donateStep2" class="hidden">
+                 <h2 class="text-2xl font-bold mb-2">Quase lá!</h2>
+                 <p id="donateConfirmationText" class="mb-4 text-gray-300"></p>
+                 <img id="donateQrCode" src="" alt="QR Code PIX" class="mx-auto rounded-lg mb-4 w-48 h-48 bg-white p-2">
+                 <div class="bg-gray-700 p-3 rounded-lg"><p class="text-sm text-gray-400">PIX Copia e Cola:</p><p id="donatePixKey" class="font-mono break-all text-xs"></p></div>
+                 <p class="text-sm text-gray-400 mt-4">Após o pagamento, seus pontos serão creditados.</p>
+            </div>
+            <button type="button" id="closeDonateBtn" class="mt-6 w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700">Fechar</button>
+        </div>
+    </div>
+    
+    <div id="supportCreatorModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-8 w-full max-w-md m-4 text-center border border-gray-700">
+            <div class="flex justify-center items-center mb-4"><svg class="w-12 h-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01M12 6a2 2 0 100-4 2 2 0 000 4zm0 12a2 2 0 100-4 2 2 0 000 4z"></path></svg><h2 class="text-3xl font-bold ml-3">Apoie o DOE SONHOS</h2></div>
+            <p class="mb-6 text-gray-300">Sua doação é o combustível que mantém nossa plataforma no ar, segura e ajudando cada vez mais pessoas. Muito obrigado!</p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=00020101021126580014br.gov.bcb.pix0136ae5fa167-57e6-42db-8cc5-518477107dd05204000053039865802BR5921MARCELO%20DA%20SILVA%20REIS6009SAO%20PAULO622905251K23EHQE0WATC6B7BNCQQM1SE630493FE" alt="QR Code PIX para doação ao criador" class="mx-auto rounded-lg mb-4 bg-white p-2">
+            <div class="bg-gray-700 p-3 rounded-lg relative">
+                <p class="text-sm text-gray-400">PIX Copia e Cola do Criador:</p>
+                <p id="creatorPixKey" class="font-mono break-words text-xs pr-10">00020101021126580014br.gov.bcb.pix0136ae5fa167-57e6-42db-8cc5-518477107dd05204000053039865802BR5921MARCELO DA SILVA REIS6009SAO PAULO622905251K23EHQE0WATC6B7BNCQQM1SE630493FE</p>
+                <button id="copyCreatorPixBtn" class="absolute top-1/2 right-2 transform -translate-y-1/2 bg-gray-600 p-1 rounded hover:bg-gray-500" title="Copiar Chave PIX">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                </button>
+            </div>
+            <button type="button" id="closeSupportBtn" class="mt-6 w-full gradient-bg text-white font-bold py-2 px-4 rounded-lg hover:opacity-90">Fechar</button>
+        </div>
+    </div>
+
+    <div id="leaveFeedbackModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-8 w-full max-w-md m-4 border border-gray-700">
+            <h2 class="text-2xl font-bold mb-4">Deixe sua Avaliação</h2>
+            <form id="feedbackForm">
+                <p class="text-gray-300 mb-4">Primeiro, um breve cadastro para validar seu feedback.</p>
+                <div class="mb-4"><label for="feedbackName" class="block text-sm font-bold mb-2">Seu Nome:</label><input type="text" id="feedbackName" class="w-full px-3 py-2 border rounded-lg bg-gray-700 border-gray-600 text-white" required></div>
+                <hr class="my-6 border-gray-600">
+                <p class="text-gray-300 mb-2">Agora, sua avaliação:</p>
+                <div id="starRating" class="star-rating flex justify-center mb-4"><span class="star" data-value="1">&#9733;</span><span class="star" data-value="2">&#9733;</span><span class="star" data-value="3">&#9733;</span><span class="star" data-value="4">&#9733;</span><span class="star" data-value="5">&#9733;</span></div>
+                <textarea id="feedbackComment" class="w-full px-3 py-2 border rounded-lg mb-4 bg-gray-700 border-gray-600 text-white" rows="3" placeholder="Deixe um comentário ou sugestão..." required></textarea>
+                <button type="submit" class="w-full gradient-bg text-white font-bold py-2 px-4 rounded-lg hover:opacity-90">Enviar Feedback</button>
+                <button type="button" id="closeFeedbackModalBtn" class="mt-2 w-full bg-gray-600 text-white py-2 px-4 rounded-lg">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="adModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+        <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-md m-4 relative border border-gray-700">
+            <h3 class="font-bold text-xl text-center mb-4">Anuncie no DOE SONHOS</h3>
+            <p class="text-center text-sm text-gray-300 mb-4">Quer que sua marca faça parte da nossa corrente do bem? Entre em contato:</p>
+            <div class="flex justify-center space-x-4 mb-6">
+                <a href="https://www.instagram.com/marceloreis7467?igsh=MXRqb3Q1MXF0cXdzaA==" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-2 bg-pink-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-pink-700">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                    <span>Instagram</span>
+                </a>
+                <a href="https://wa.me/5594991233751" target="_blank" rel="noopener noreferrer" class="flex items-center space-x-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">
+                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.903-.52-5.687-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.886-.001 2.267.655 4.398 1.803 6.182l-1.03 3.757 3.752-1.031z"></path></svg>
+                    <span>WhatsApp</span>
+                </a>
+            </div>
+            <button id="closeAdBtn" class="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700">Continuar Navegando</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- ELEMENTOS DO DOM ---
+            const dreamsGrid = document.getElementById('dreamsGrid');
+            const firstTimeUserModal = document.getElementById('firstTimeUserModal');
+            const dreamForm = document.getElementById('dreamForm');
+            const cancelRegisterBtn = document.getElementById('cancelRegisterBtn');
+            const donateModal = document.getElementById('donateModal');
+            const closeDonateBtn = document.getElementById('closeDonateBtn');
+            const supportCreatorModal = document.getElementById('supportCreatorModal');
+            const supportCreatorBtn = document.getElementById('supportCreatorBtn');
+            const closeSupportBtn = document.getElementById('closeSupportBtn');
+            const userPointsDisplay = document.getElementById('userPointsDisplay');
+            const userLevelDisplay = document.getElementById('userLevelDisplay');
+            const customAlert = document.getElementById('customAlert');
+            const leaveFeedbackModal = document.getElementById('leaveFeedbackModal');
+            const leaveFeedbackBtn = document.getElementById('leaveFeedbackBtn');
+            const closeFeedbackModalBtn = document.getElementById('closeFeedbackModalBtn');
+            const feedbackForm = document.getElementById('feedbackForm');
+            const feedbackList = document.getElementById('feedbackList');
+            const starRatingContainer = document.getElementById('starRating');
+            const slideshowContainer = document.getElementById('slideshowContainer');
+            const toggleAmbianceBtn = document.getElementById('toggleAmbianceBtn');
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+            const adModal = document.getElementById('adModal');
+            const closeAdBtn = document.getElementById('closeAdBtn');
+            const copyCreatorPixBtn = document.getElementById('copyCreatorPixBtn');
+            const sharePageBtn = document.getElementById('sharePageBtn');
+            const backgroundControl = document.getElementById('backgroundControl');
+            const setBlackBgBtn = document.getElementById('setBlackBgBtn');
+            const setSlidesBgBtn = document.getElementById('setSlidesBgBtn');
+            const inspirationIntroVideo = document.getElementById('inspirationIntroVideo');
+            const welcomeModal = document.getElementById('welcomeModal');
+            const closeWelcomeBtn = document.getElementById('closeWelcomeBtn');
+
+            // --- ESTADO DO APLICATIVO ---
+            let userState = { points: 0, level: 1, isRegistered: false, ownDream: null };
+            let dreams = [
+                { id: 1, name: 'Carlos Pereira', title: 'Curso de Programação Web', description: 'Quero me tornar um desenvolvedor para conseguir um emprego melhor e ajudar minha família.', pix: 'chave-aleatoria-1' },
+                { id: 2, name: 'Ana Julia', title: 'Comprar uma máquina de costura', description: 'Com uma máquina de costura profissional, posso começar meu pequeno negócio de consertos e criações.', pix: 'chave-aleatoria-2' },
+                { id: 3, name: 'José Almeida', title: 'Consulta médica e exames', description: 'Preciso de ajuda para cobrir os custos de uma consulta com especialista e exames importantes para minha saúde.', pix: 'chave-aleatoria-3' }
+            ];
+            let feedbacks = [
+                { name: 'Maria S.', rating: 5, comment: 'Plataforma incrível com um propósito maravilhoso! Fácil de usar.' },
+                { name: 'João P.', rating: 4, comment: 'Gostei muito da ideia. Espero que ajude muitas pessoas.' }
+            ];
+            let currentDreamToDonate = null;
+            let currentRating = 0;
+            let adInterval = null;
+            let slideshowInterval = null;
+            let musicPlayer = null;
+
+            // --- FUNÇÕES ---
+            const showAlert = (message) => {
+                customAlert.textContent = message;
+                customAlert.style.top = '80px';
+                customAlert.style.opacity = '1';
+                setTimeout(() => { customAlert.style.opacity = '0'; customAlert.style.top = '-100px'; }, 4000);
+            };
+
+            const updateUserDisplay = () => {
+                userPointsDisplay.textContent = userState.points;
+                userLevelDisplay.textContent = userState.level;
+            };
+
+            const renderDreams = () => {
+                dreamsGrid.innerHTML = '';
+                dreams.forEach(dream => {
+                    const dreamCard = document.createElement('div');
+                    dreamCard.className = 'bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-md p-6 flex flex-col justify-between hover:shadow-xl transition-shadow duration-300 border border-gray-700';
+                    dreamCard.innerHTML = `<div><h4 class="text-xl font-bold mb-2 text-white">${dream.title}</h4><p class="text-sm text-gray-400 mb-2">por ${dream.name}</p><p class="text-gray-300 mb-4">${dream.description}</p></div><button data-id="${dream.id}" class="support-dream-btn w-full gradient-bg text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity">Apoiar Sonho</button>`;
+                    dreamsGrid.appendChild(dreamCard);
+                });
+            };
+
+            const renderFeedbacks = () => {
+                feedbackList.innerHTML = '';
+                if (feedbacks.length === 0) {
+                    feedbackList.innerHTML = `<p class="text-gray-400">Ainda não há avaliações. Seja o primeiro!</p>`;
+                    return;
+                }
+                feedbacks.forEach(fb => {
+                    const feedbackCard = document.createElement('div');
+                    feedbackCard.className = 'bg-gray-800 p-4 rounded-lg border border-gray-700';
+                    let stars = '';
+                    for (let i = 0; i < 5; i++) {
+                        stars += `<span class="star ${i < fb.rating ? 'text-yellow-400' : 'text-gray-600'} text-xl">&#9733;</span>`;
+                    }
+                    feedbackCard.innerHTML = `<div class="flex items-center mb-2"><div>${stars}</div><p class="ml-4 font-bold text-gray-200">${fb.name}</p></div><p class="text-gray-300 italic">"${fb.comment}"</p>`;
+                    feedbackList.appendChild(feedbackCard);
+                });
+            };
+
+            const toggleModal = (modal, show) => {
+                modal.classList.toggle('hidden', !show);
+                modal.classList.toggle('flex', show);
+            };
+
+            const copyToClipboard = (text) => {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showAlert('Copiado para a área de transferência!');
+                } catch (err) {
+                    showAlert('Erro ao copiar.');
+                }
+                document.body.removeChild(textArea);
+            };
+
+            // --- LÓGICA DE AMBIÊNCIA (MÚSICA E SLIDES) ---
+            const setupMusic = () => {
+                musicPlayer = new Tone.Loop(time => {
+                    const synth = new Tone.Synth({
+                        oscillator: { type: 'sine' },
+                        envelope: { attack: 0.5, decay: 0.1, sustain: 0.3, release: 1 }
+                    }).toDestination();
+                    synth.triggerAttackRelease("C2", "8n", time);
+                }, "1m").start(0);
+                Tone.Transport.bpm.value = 70;
+            };
+            
+            const slideImages = [
+                'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=1974&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop'
+            ];
+            let currentSlideIndex = 0;
+            slideImages.forEach((imgUrl, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'slide';
+                slide.style.backgroundImage = `url('${imgUrl}')`;
+                if (index === 0) slide.classList.add('active');
+                slideshowContainer.appendChild(slide);
+            });
+            const slides = document.querySelectorAll('.slide');
+            const nextSlide = () => {
+                slides[currentSlideIndex].classList.remove('active');
+                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+                slides[currentSlideIndex].classList.add('active');
+            };
+            
+            const toggleAmbiance = (forceOn = null) => {
+                const isOn = slideshowContainer.style.display === 'block';
+                const turnOn = forceOn === null ? !isOn : forceOn;
+
+                if (turnOn) {
+                    slideshowContainer.style.display = 'block';
+                    document.body.style.backgroundColor = '#111827';
+                    if (!slideshowInterval) slideshowInterval = setInterval(nextSlide, 5000);
+                    if (Tone.Transport.state !== 'started') {
+                        Tone.start();
+                        Tone.Transport.start();
+                    }
+                    playIcon.classList.add('hidden');
+                    pauseIcon.classList.remove('hidden');
+                } else {
+                    slideshowContainer.style.display = 'none';
+                    if (slideshowInterval) { clearInterval(slideshowInterval); slideshowInterval = null; }
+                    if (Tone.Transport.state === 'started') Tone.Transport.pause();
+                    playIcon.classList.remove('hidden');
+                    pauseIcon.classList.add('hidden');
+                }
+            };
+            toggleAmbianceBtn.addEventListener('click', () => toggleAmbiance());
+            
+            // --- LÓGICA DE FEEDBACK ---
+            leaveFeedbackBtn.addEventListener('click', () => toggleModal(leaveFeedbackModal, true));
+            closeFeedbackModalBtn.addEventListener('click', () => toggleModal(leaveFeedbackModal, false));
+            starRatingContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('star')) {
+                    currentRating = parseInt(e.target.dataset.value);
+                    document.querySelectorAll('#leaveFeedbackModal .star-rating .star').forEach(star => {
+                        star.classList.toggle('selected', parseInt(star.dataset.value) <= currentRating);
+                    });
+                }
+            });
+            feedbackForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('feedbackName').value;
+                const comment = document.getElementById('feedbackComment').value;
+                if (currentRating === 0) { showAlert("Por favor, selecione uma avaliação de 1 a 5 estrelas."); return; }
+                feedbacks.unshift({ name, rating: currentRating, comment });
+                renderFeedbacks();
+                feedbackForm.reset();
+                document.querySelectorAll('#leaveFeedbackModal .star-rating .star').forEach(star => star.classList.remove('selected'));
+                currentRating = 0;
+                toggleModal(leaveFeedbackModal, false);
+                showAlert('Obrigado pelo seu feedback!');
+            });
+
+            // --- LÓGICA DA PROPAGANDA ---
+            const startAdTimer = () => {
+                if (adInterval) clearInterval(adInterval);
+                adInterval = setInterval(() => {
+                    const anyModalOpen = document.querySelector('.modal-backdrop.flex');
+                    if (!userState.isRegistered && !anyModalOpen) {
+                        toggleModal(adModal, true);
+                    }
+                }, 60000); // 60000 ms = 1 minuto
+            };
+
+            closeAdBtn.addEventListener('click', () => {
+                toggleModal(adModal, false);
+                backgroundControl.classList.remove('hidden');
+                backgroundControl.classList.add('flex');
+            });
+
+            // --- LÓGICA CONTROLE DE FUNDO ---
+            setBlackBgBtn.addEventListener('click', () => {
+                document.body.style.backgroundColor = '#000000';
+                toggleAmbiance(false);
+                toggleAmbianceBtn.classList.add('hidden');
+                backgroundControl.classList.add('hidden');
+            });
+            setSlidesBgBtn.addEventListener('click', () => {
+                toggleAmbiance(true);
+                toggleAmbianceBtn.classList.remove('hidden');
+                backgroundControl.classList.add('hidden');
+            });
+            
+            // --- EVENT LISTENERS ---
+            supportCreatorBtn.addEventListener('click', () => toggleModal(supportCreatorModal, true));
+            closeSupportBtn.addEventListener('click', () => toggleModal(supportCreatorModal, false));
+            document.getElementById('registerDreamBtn').addEventListener('click', () => toggleModal(firstTimeUserModal, true));
+            cancelRegisterBtn.addEventListener('click', () => toggleModal(firstTimeUserModal, false));
+
+            copyCreatorPixBtn.addEventListener('click', () => {
+                const pixKey = document.getElementById('creatorPixKey').innerText;
+                copyToClipboard(pixKey);
+            });
+
+            sharePageBtn.addEventListener('click', async () => {
+                const shareData = {
+                    title: 'DOE SONHOS',
+                    text: 'Conheça a plataforma que transforma centavos em futuros!',
+                    url: window.location.href
+                };
+                try {
+                    if (navigator.share) {
+                        await navigator.share(shareData);
+                    } else { throw new Error('Web Share API not supported'); }
+                } catch (err) {
+                    copyToClipboard(window.location.href);
+                }
+            });
+
+            dreamsGrid.addEventListener('click', (e) => {
+                if (e.target.classList.contains('support-dream-btn')) {
+                    const dreamId = parseInt(e.target.dataset.id);
+                    currentDreamToDonate = dreams.find(d => d.id === dreamId);
+                    if (userState.isRegistered) {
+                        document.getElementById('donateModalTitle').textContent = `Apoiar o sonho: "${currentDreamToDonate.title}"`;
+                        document.getElementById('donateStep1').classList.remove('hidden');
+                        document.getElementById('donateStep2').classList.add('hidden');
+                        toggleModal(donateModal, true);
+                    } else {
+                        toggleModal(firstTimeUserModal, true);
+                    }
+                }
+            });
+
+            dreamForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                userState.ownDream = { name: document.getElementById('dreamerName').value, title: document.getElementById('dreamTitle').value, description: document.getElementById('dreamDescription').value, pix: document.getElementById('dreamPix').value };
+                userState.isRegistered = true;
+                if(adInterval) clearInterval(adInterval);
+                dreamForm.reset();
+                toggleModal(firstTimeUserModal, false);
+                showAlert('Sonho cadastrado com sucesso! Agora você pode apoiar outros sonhos.');
+                if (currentDreamToDonate) {
+                    setTimeout(() => {
+                         document.getElementById('donateModalTitle').textContent = `Apoiar o sonho: "${currentDreamToDonate.title}"`;
+                         document.getElementById('donateStep1').classList.remove('hidden');
+                         document.getElementById('donateStep2').classList.add('hidden');
+                         toggleModal(donateModal, true);
+                    }, 500);
+                }
+            });
+            
+            donateModal.addEventListener('click', (e) => {
+                if(e.target.classList.contains('donate-amount-btn')) {
+                    const amount = parseInt(e.target.dataset.amount);
+                    userState.points += amount;
+                    if (userState.points >= 10000 && userState.level < 2) {
+                        userState.level = 2;
+                        showAlert('🎉 Parabéns! Você alcançou o Nível 2!');
+                    }
+                    updateUserDisplay();
+                    const donationValue = (amount / 100).toFixed(2).replace('.', ',');
+                    document.getElementById('donateConfirmationText').textContent = `Para doar R$ ${donationValue}, use o PIX abaixo:`;
+                    document.getElementById('donateQrCode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${currentDreamToDonate.pix}`;
+                    document.getElementById('donatePixKey').textContent = currentDreamToDonate.pix;
+                    document.getElementById('donateStep1').classList.add('hidden');
+                    document.getElementById('donateStep2').classList.remove('hidden');
+                }
+            });
+
+            closeDonateBtn.addEventListener('click', () => toggleModal(donateModal, false));
+            
+            // --- LÓGICA DE BOAS-VINDAS ---
+            if (!localStorage.getItem('welcomeMessageSeen')) {
+                setTimeout(() => {
+                    toggleModal(welcomeModal, true);
+                }, 1500);
+            }
+            closeWelcomeBtn.addEventListener('click', () => {
+                toggleModal(welcomeModal, false);
+                localStorage.setItem('welcomeMessageSeen', 'true');
+            });
+
+
+            // --- INICIALIZAÇÃO ---
+            renderDreams();
+            renderFeedbacks();
+            updateUserDisplay();
+            startAdTimer();
+            setupMusic();
+            toggleAmbiance(true); // Inicia com a ambiência ativada
+        });
+    </script>
+</body>
+</html>
